@@ -1,0 +1,45 @@
+/* Police et couleurs générales de la page */
+body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 0 20px;
+    color: #333;
+}
+
+h1 {
+    color: #5b3a29; /* brun café */
+}
+
+/* La barre de recherche */
+form {
+    margin-bottom: 20px;
+}
+
+input[type="text"] {
+    padding: 8px;
+    width: 250px;
+}
+
+button {
+    padding: 8px 14px;
+    background-color: #5b3a29;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #7a5238;
+}
+
+/* La liste des clients */
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}

@@ -1,0 +1,34 @@
+<!-- {% load static %} donne accès à la balise {% static %} ci-dessous -->
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'fidelite/style.css' %}">
+
+<h1>Café - Clients</h1>
+
+
+
+
+<!-- Formulaire de recherche. method="get" met "q" dans l'adresse. -->
+<form method="get">
+    <input type="text" name="q" placeholder="Nom ou téléphone" value="{{ recherche }}">
+    <button type="submit">Chercher</button>         
+</form>
+
+<h2>Résultats</h2>
+<ul>
+    {% for client in resultats %}
+        <li>{{ client.nom }} — {{ client.telephone }}</li>
+    {% empty %}
+        <li>Aucun client trouvé.</li>
+    {% endfor %}
+</ul>
+
+<h2>Ajouter un client</h2>
+<!-- method="post" envoie les données de façon sécurisée, pas dans l'adresse. -->
+<form method="post">
+    <!-- csrf_token : protection de sécurité obligatoire pour tout formulaire POST. -->
+    {% csrf_token %}
+    <!-- as_p affiche chaque champ du formulaire dans un paragraphe. -->
+    {{ formulaire.as_p }}
+    <button type="submit">Enregistrer</button>
+</form>

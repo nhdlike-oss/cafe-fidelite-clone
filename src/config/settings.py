@@ -31,12 +31,13 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    'django.contrib.admin',          # l'interface d'administration
+    'django.contrib.auth',           # les comptes utilisateurs
+    'django.contrib.contenttypes',   # outil interne de Django
+    'django.contrib.sessions',       # garde la session de connexion
+    'django.contrib.messages',       # petits messages à l'écran
+    'django.contrib.staticfiles',    # fichiers CSS, images...
+    'fidelite',                      # NOUVEAU : ton app, sans cette ligne Django l'ignore
 ]
 
 MIDDLEWARE = [
@@ -102,9 +103,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fr-ca'              # CHANGÉ : admin et messages en français québécois
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Toronto'        # CHANGÉ : heures affichées à l'heure de l'Est
 
 USE_I18N = True
 
