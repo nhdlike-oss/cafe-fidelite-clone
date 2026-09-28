@@ -1,34 +1,62 @@
-<!-- {% load static %} donne accès à la balise {% static %} ci-dessous -->
 {% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Café - Clients</title>
+    <link rel="stylesheet" href="{% static 'fidelite/style.css' %}">
+</head>
+<body>
 
-<link rel="stylesheet" href="{% static 'fidelite/style.css' %}">
+<div class="entete"><h1>Café - Clients</h1></div>
 
-<h1>Café - Clients</h1>
+<div class="conteneur">
 
+    <!-- Section 1 : recherche par nom, telephone ou courriel -->
+    <div class="carte">
+        <h2>Trouver un client</h2>
+        <form method="get" class="recherche">
+            <input type="text" name="q" value="{{ recherche }}"
+                   placeholder="Nom, téléphone ou courriel" autofocus>
+            <button type="submit">Chercher</button>
+            {% if recherche %}
+                <!-- Bouton pour vider la recherche -->
+                <a class="bouton bouton-secondaire" href="{% url 'trouver_client' %}">Effacer</a>
+            {% endif %}
+        </form>
+    </div>
 
+    <!-- Section 2 : resultats. Elle n'apparait QUE si une recherche a ete faite. -->
+    {% if recherche %}
+        <div class="carte">
+            <h2>Résultats ({{ resultats|length }})</h2>
+            <ul class="liste-clients">
+                {% for client in resultats %}
+                    <li>
+                        <div>
+                            <span class="nom">{{ client.nom }}</span>
+                            <span class="tel">{{ client.telephone }}</span>
+                        </div>
+                        <a class="bouton" href="{% url 'enregistrer_achat' client.id %}">Enregistrer un achat</a>
+                    </li>
+                {% empty %}
+                    <li class="vide">Aucun client trouvé.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
 
+    <!-- Section 3 : creation d'un nouveau client -->
+    <div class="carte">
+        <h2>Ajouter un client</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ formulaire.as_p }}
+            <button type="submit">Enregistrer</button>
+        </form>
+    </div>
 
-<!-- Formulaire de recherche. method="get" met "q" dans l'adresse. -->
-<form method="get">
-    <input type="text" name="q" placeholder="Nom ou téléphone" value="{{ recherche }}">
-    <button type="submit">Chercher</button>         
-</form>
-
-<h2>Résultats</h2>
-<ul>
-    {% for client in resultats %}
-        <li>{{ client.nom }} — {{ client.telephone }}</li>
-    {% empty %}
-        <li>Aucun client trouvé.</li>
-    {% endfor %}
-</ul>
-
-<h2>Ajouter un client</h2>
-<!-- method="post" envoie les données de façon sécurisée, pas dans l'adresse. -->
-<form method="post">
-    <!-- csrf_token : protection de sécurité obligatoire pour tout formulaire POST. -->
-    {% csrf_token %}
-    <!-- as_p affiche chaque champ du formulaire dans un paragraphe. -->
-    {{ formulaire.as_p }}
-    <button type="submit">Enregistrer</button>
-</form>
+</div>
+</body>
+</html>

@@ -1,45 +1,127 @@
-/* Police et couleurs générales de la page */
+/* ===== Couleurs du site : on les definit une seule fois ici ===== */
+:root {
+    --brun: #5b3a29;
+    --brun-clair: #7a5238;
+    --creme: #f7f1e8;
+    --blanc: #ffffff;
+    --texte: #2e2e2e;
+    --gris: #8a8178;
+    --bordure: #e4dccf;
+    --vert: #3c7a4a;
+    --rouge: #b3402f;
+}
+
+/* box-sizing : la largeur d'un element inclut ses marges internes (plus simple a calculer) */
+* { box-sizing: border-box; }
+
 body {
-    font-family: Arial, sans-serif;
-    max-width: 700px;
-    margin: 40px auto;
-    padding: 0 20px;
-    color: #333;
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: var(--creme);
+    color: var(--texte);
 }
 
-h1 {
-    color: #5b3a29; /* brun café */
+/* ===== Bandeau du haut ===== */
+.entete {
+    background: var(--brun);
+    color: var(--blanc);
+    padding: 18px 24px;
+}
+.entete h1 { margin: 0; font-size: 1.4rem; }
+
+/* ===== Conteneur central : garde le contenu lisible sur grand ecran ===== */
+.conteneur {
+    max-width: 760px;
+    margin: 24px auto;
+    padding: 0 16px;
 }
 
-/* La barre de recherche */
-form {
+/* ===== Les "cartes" blanches qui regroupent chaque section ===== */
+.carte {
+    background: var(--blanc);
+    border: 1px solid var(--bordure);
+    border-radius: 12px;
+    padding: 20px;
     margin-bottom: 20px;
 }
+.carte h2 { margin: 0 0 14px; font-size: 1.1rem; color: var(--brun); }
 
-input[type="text"] {
-    padding: 8px;
-    width: 250px;
-}
-
-button {
-    padding: 8px 14px;
-    background-color: #5b3a29;
-    color: white;
+/* ===== Boutons (liens et vrais boutons ont le meme look) ===== */
+.bouton, button {
+    display: inline-block;
+    padding: 10px 16px;
+    background: var(--brun);
+    color: var(--blanc);
     border: none;
+    border-radius: 8px;
+    font-size: 1rem;
     cursor: pointer;
+    text-decoration: none;
 }
+.bouton:hover, button:hover { background: var(--brun-clair); }
+.bouton-secondaire { background: var(--gris); }
+.bouton-secondaire:hover { background: #6f675f; }
+.bouton-gratuit { background: var(--vert); }
+.bouton-gratuit:hover { background: #2f6039; }
 
-button:hover {
-    background-color: #7a5238;
+/* ===== Champs de formulaire ===== */
+input[type="text"], input[type="email"], input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--bordure);
+    border-radius: 8px;
+    font-size: 1rem;
 }
+input:focus { outline: 2px solid var(--brun-clair); }
+form p { margin: 0 0 14px; }          /* {{ formulaire.as_p }} genere des <p> */
+label { display: block; margin-bottom: 4px; color: var(--gris); font-size: 0.9rem; }
 
-/* La liste des clients */
-ul {
+/* Messages d'erreur de Django (ex: telephone deja utilise) */
+ul.errorlist {
     list-style: none;
+    margin: 0 0 6px;
     padding: 0;
+    color: var(--rouge);
+    font-size: 0.9rem;
 }
 
-li {
-    padding: 8px;
-    border-bottom: 1px solid #ddd;
+/* ===== Page 1 : barre de recherche et liste des clients ===== */
+.recherche { display: flex; gap: 8px; }
+.recherche input { flex: 1; }
+
+.liste-clients { list-style: none; margin: 0; padding: 0; }
+.liste-clients li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--bordure);
+}
+.liste-clients li:last-child { border-bottom: none; }
+.liste-clients .nom { font-weight: 600; display: block; }
+.liste-clients .tel { color: var(--gris); font-size: 0.9rem; }
+.liste-clients .vide { color: var(--gris); justify-content: center; }
+
+/* ===== Page 2 : les 3 chiffres du client ===== */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stat {
+    background: var(--creme);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+}
+.stat .valeur { font-size: 1.8rem; font-weight: 700; color: var(--brun); }
+.stat .titre { font-size: 0.85rem; color: var(--gris); }
+
+/* Zone d'actions : quantite + boutons alignes et qui passent a la ligne si besoin */
+.quantite { max-width: 160px; margin-bottom: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.retour { display: inline-block; margin-top: 4px; color: var(--brun); }
+
+/* ===== Petits ecrans (telephone, tablette) ===== */
+@media (max-width: 520px) {
+    .stats { grid-template-columns: 1fr; }
+    .liste-clients li { flex-direction: column; align-items: flex-start; }
 }
