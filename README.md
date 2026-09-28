@@ -73,4 +73,4 @@ cafe-fidelite/
 
 ## Auteurs
 
-Khaled Hamdaoui et 
+Khaled Hamdaoui et Nene Hassy diallo
