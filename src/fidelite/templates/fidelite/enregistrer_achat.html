@@ -1,17 +1,7 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Achat - {{ client.nom }}</title>
-    <link rel="stylesheet" href="{% static 'fidelite/style.css' %}">
-</head>
-<body>
-
-<div class="entete"><h1>{{ client.nom }}</h1></div>
-
-<div class="conteneur">
+{% extends "fidelite/base.html" %}
+{% block title %}Achat - {{ client.nom }}{% endblock %}
+{% block titre %}{{ client.nom }}{% endblock %}
+{% block contenu %}
 
     {# Section 1 : la situation du client en un coup d'oeil #}
     <div class="carte">
@@ -20,7 +10,6 @@
             <div class="stat">
                 <div class="valeur">{{ client.gratuits_disponibles }}</div>
                 <div class="titre">Cafés gratuits disponibles</div>
-                {# "with" calcule la date une seule fois et la garde dans la variable expiration #}
                 {% with expiration=client.prochaine_expiration %}
                     {% if expiration %}
                         <div class="titre">Le plus proche expire le {{ expiration|date:"j F Y" }}</div>
@@ -30,9 +19,9 @@
             <div class="stat">
                 <div class="valeur">{{ client.achats_payes }}</div>
                 <div class="titre">Achats payés au total</div>
+                <div class="titre">{{ client.etampes_cycle }} étampe(s) vers le prochain gratuit</div>
             </div>
             <div class="stat">
-                {# Total des cafes sur les cartes valides : 0 si aucune carte ou si elle a expire #}
                 <div class="valeur">{{ client.cafes_prepayes_restants }}</div>
                 <div class="titre">Cafés sur la carte</div>
                 {% if carte_active %}
@@ -47,33 +36,59 @@
         <h2>Enregistrer un achat</h2>
         <form method="post">
             {% csrf_token %}
-
-            {# Quantite partagee par les boutons Payer et Utiliser la carte #}
             <div class="quantite">
                 <label for="quantite">Nombre de cafés</label>
                 <input type="number" id="quantite" name="quantite" value="1" min="1" max="20">
             </div>
-
             <div class="actions">
                 <button type="submit" name="action" value="payer">Payer</button>
-
-                {# Visible seulement si le client a droit a un cafe gratuit #}
                 {% if client.gratuits_disponibles > 0 %}
                     <button type="submit" name="action" value="gratuit" class="bouton-gratuit">Utiliser un café gratuit</button>
                 {% endif %}
-
-                {# Visible seulement si le client a une carte valide avec des cafes restants #}
                 {% if carte_active %}
                     <button type="submit" name="action" value="carte" class="bouton-secondaire">Utiliser la carte</button>
                 {% endif %}
-
                 <button type="submit" name="action" value="vendre_carte" class="bouton-secondaire">Vendre une nouvelle carte</button>
             </div>
         </form>
     </div>
 
+    {# Section 3 : historique (le gerant peut annuler) #}
+    <div class="carte">
+        <h2>Historique récent</h2>
+        <table style="width:100%; border-collapse:collapse; font-size:0.95em;">
+            {% for t in historique %}
+            <tr style="border-bottom:1px solid #ddd; {% if t.est_annulee %}color:#999; text-decoration:line-through;{% endif %}">
+                <td style="padding:6px 4px;">{{ t.cree_le|date:"j M Y H:i" }}</td>
+                <td>{{ t.get_type_display }}</td>
+                <td>{{ t.cree_par.username|default:"—" }}</td>
+                <td style="text-decoration:none;">
+                    {% if t.est_annulee %}
+                        <span style="text-decoration:none; display:inline-block;">annulée par {{ t.annulee_par.username|default:"—" }} le {{ t.annulee_le|date:"j M Y H:i" }}</span>
+                    {% elif est_gerant %}
+                        <form method="post" action="{% url 'annuler' t.id %}" style="margin:0;"
+                              onsubmit="return confirm('Annuler cette transaction ?');">
+                            {% csrf_token %}<button type="submit" class="bouton-secondaire">Annuler</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td>Aucune transaction.</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    {% if est_gerant %}
+    <div class="carte">
+        <h2>Gestion de la fiche (gérant)</h2>
+        <div class="actions">
+            <a class="bouton bouton-secondaire" href="{% url 'fusionner' client.id %}">Fusionner avec une autre fiche</a>
+            <a class="bouton bouton-secondaire" href="{% url 'effacer' client.id %}">Effacer ce client</a>
+        </div>
+    </div>
+    {% endif %}
+
     <a class="retour" href="{% url 'trouver_client' %}">← Retour aux clients</a>
 
-</div>
-</body>
-</html>
+{% endblock %}

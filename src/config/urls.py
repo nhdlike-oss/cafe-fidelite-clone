@@ -1,18 +1,14 @@
 from django.contrib import admin
-# RedirectView renvoie automatiquement le navigateur vers une autre adresse.
-from django.views.generic import RedirectView
-# include = brancher les adresses d'une autre app.
+from django.contrib.auth import views as auth_views
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 urlpatterns = [
-    # NOUVEAU : l'adresse vide "/" redirige vers la page "trouver_client".
-    # pattern_name utilise le NOM de la route (defini dans fidelite/urls.py),
-    # donc pas d'adresse ecrite en dur ici.
     path("", RedirectView.as_view(pattern_name="trouver_client")),
-
-    # /admin/ -> l'interface d'administration.
     path("admin/", admin.site.urls),
-
-    # /cafe/... -> le plan de l'app fidelite.
+    # v2 : connexion obligatoire pour les ecrans du comptoir.
+    path("connexion/", auth_views.LoginView.as_view(template_name="fidelite/connexion.html"),
+         name="login"),
+    path("deconnexion/", auth_views.LogoutView.as_view(), name="logout"),
     path("cafe/", include("fidelite.urls")),
 ]

@@ -1,0 +1,22 @@
+{% extends "fidelite/base.html" %}
+{% block title %}Effacer un client{% endblock %}
+{% block titre %}Effacer {{ client.nom }}{% endblock %}
+{% block contenu %}
+<div class="carte">
+    <h2>Confirmer l'effacement</h2>
+    <p>Le nom, le téléphone et le courriel de ce client seront <strong>définitivement effacés</strong>.
+       Ses cafés restent comptés dans les rapports, sans son identité.</p>
+    {% if client.cafes_prepayes_restants %}
+        <p style="color:#c0392b;"><strong>Attention :</strong> il reste {{ client.cafes_prepayes_restants }}
+           café(s) sur sa carte prépayée. Ils seront perdus.</p>
+    {% endif %}
+    {% if client.gratuits_disponibles %}
+        <p style="color:#c0392b;">Il a aussi {{ client.gratuits_disponibles }} café(s) gratuit(s) non utilisé(s).</p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Effacer définitivement</button>
+        <a class="bouton bouton-secondaire" href="{% url 'enregistrer_achat' client.id %}">Annuler</a>
+    </form>
+</div>
+{% endblock %}

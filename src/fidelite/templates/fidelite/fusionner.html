@@ -1,0 +1,39 @@
+{% extends "fidelite/base.html" %}
+{% block title %}Fusionner{% endblock %}
+{% block titre %}Fusionner {{ client.nom }}{% endblock %}
+{% block contenu %}
+{% if autre %}
+<div class="carte">
+    <h2>Confirmer la fusion</h2>
+    <p>{{ client.nom }} ({{ client.telephone }}) : {{ client.achats_payes }} achats, {{ client.cafes_prepayes_restants }} cafés sur carte.<br>
+       {{ autre.nom }} ({{ autre.telephone }}) : {{ autre.achats_payes }} achats, {{ autre.cafes_prepayes_restants }} cafés sur carte.</p>
+    <p>La fiche <strong>la plus ancienne</strong> est conservée (avec son nom et son téléphone). Les transactions
+       et les cartes de l'autre fiche lui sont rattachées, puis l'autre fiche disparaît.
+       <strong>Cette opération ne peut pas être défaite.</strong></p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Fusionner</button>
+        <a class="bouton bouton-secondaire" href="{% url 'fusionner' client.id %}">Annuler</a>
+    </form>
+</div>
+{% else %}
+<div class="carte">
+    <h2>Chercher l'autre fiche</h2>
+    <form method="get" class="recherche">
+        <input type="text" name="q" value="{{ recherche }}" placeholder="Nom, téléphone ou courriel" autofocus>
+        <button type="submit">Chercher</button>
+    </form>
+    {% if recherche %}
+    <ul class="liste-clients">
+        {% for c in candidats %}
+            <li><div><span class="nom">{{ c.nom }}</span> <span class="tel">{{ c.telephone }}</span></div>
+                <a class="bouton" href="{% url 'fusionner_avec' client.id c.id %}">Choisir</a></li>
+        {% empty %}
+            <li class="vide">Aucun client trouvé.</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+{% endif %}
+<a class="retour" href="{% url 'enregistrer_achat' client.id %}">← Retour</a>
+{% endblock %}

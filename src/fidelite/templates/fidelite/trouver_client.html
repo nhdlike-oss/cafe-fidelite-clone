@@ -1,17 +1,7 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Café - Clients</title>
-    <link rel="stylesheet" href="{% static 'fidelite/style.css' %}">
-</head>
-<body>
-
-<div class="entete"><h1>Café - Clients</h1></div>
-
-<div class="conteneur">
+{% extends "fidelite/base.html" %}
+{% block title %}Café - Clients{% endblock %}
+{% block titre %}Café - Clients{% endblock %}
+{% block contenu %}
 
     <!-- Section 1 : recherche par nom, telephone ou courriel -->
     <div class="carte">
@@ -21,7 +11,6 @@
                    placeholder="Nom, téléphone ou courriel" autofocus>
             <button type="submit">Chercher</button>
             {% if recherche %}
-                <!-- Bouton pour vider la recherche -->
                 <a class="bouton bouton-secondaire" href="{% url 'trouver_client' %}">Effacer</a>
             {% endif %}
         </form>
@@ -57,6 +46,4 @@
         </form>
     </div>
 
-</div>
-</body>
-</html>
+{% endblock %}

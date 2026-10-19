@@ -3,7 +3,9 @@ import re
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Client
+from django.utils import timezone
+
+from .models import Client, RegleFidelite
 
 # ---- Expressions régulières (compilées une seule fois, ici) ----
 
@@ -101,3 +103,19 @@ class ClientForm(forms.ModelForm):
 
         # En minuscules : "Sara@Gmail.com" et "sara@gmail.com" sont la même adresse.
         return courriel
+
+
+class RegleForm(forms.ModelForm):
+    # Changer la regle du cafe gratuit (gerant). La date d'entree en vigueur
+    # ne peut pas etre dans le passe : on ne reecrit pas l'histoire (ADR-0004).
+    class Meta:
+        model = RegleFidelite
+        fields = ["etampes_requises", "en_vigueur_le"]
+        labels = {"etampes_requises": "Étampes requises", "en_vigueur_le": "En vigueur le"}
+        widgets = {"en_vigueur_le": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
+
+    def clean_en_vigueur_le(self):
+        jour = self.cleaned_data["en_vigueur_le"]
+        if jour < timezone.localdate():
+            raise ValidationError("La date d'entrée en vigueur ne peut pas être dans le passé.")
+        return jour

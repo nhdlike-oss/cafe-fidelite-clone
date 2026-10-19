@@ -1,0 +1,14 @@
+{% extends "fidelite/base.html" %}
+{% block title %}Connexion{% endblock %}
+{% block titre %}Café - Connexion{% endblock %}
+{% block contenu %}
+<div class="carte">
+    <h2>Se connecter</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit">Connexion</button>
+    </form>
+</div>
+{% endblock %}

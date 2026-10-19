@@ -1,0 +1,29 @@
+{% extends "fidelite/base.html" %}
+{% block title %}Rapports{% endblock %}
+{% block titre %}Rapports{% endblock %}
+{% block contenu %}
+<div class="carte">
+    <h2>Période</h2>
+    <form method="get" class="recherche">
+        <label>Du <input type="date" name="debut" value="{{ debut|date:'Y-m-d' }}"></label>
+        <label>au <input type="date" name="fin" value="{{ fin|date:'Y-m-d' }}"></label>
+        <button type="submit">Afficher</button>
+    </form>
+    <p>
+        {% for nom, d, f in raccourcis %}
+            <a href="?debut={{ d|date:'Y-m-d' }}&fin={{ f|date:'Y-m-d' }}">{{ nom }}</a>{% if not forloop.last %} · {% endif %}
+        {% endfor %}
+    </p>
+</div>
+<div class="carte">
+    <h2>Du {{ debut|date:"j F Y" }} au {{ fin|date:"j F Y" }}</h2>
+    <div class="stats">
+        <div class="stat"><div class="valeur">{{ payes }}</div><div class="titre">Cafés payés</div></div>
+        <div class="stat"><div class="valeur">{{ gratuits }}</div><div class="titre">Cafés gratuits donnés</div></div>
+        <div class="stat"><div class="valeur">{{ sur_carte }}</div><div class="titre">Cafés tirés d'une carte</div></div>
+        <div class="stat"><div class="valeur">{{ cartes }}</div><div class="titre">Cartes vendues</div></div>
+    </div>
+    <p style="color:var(--gris);">Les transactions annulées ne sont pas comptées
+        ({{ annulees }} annulée(s) sur cette période).</p>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Café{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'fidelite/style.css' %}">
+</head>
+<body>
+
+<div class="entete"><h1>{% block titre %}Café{% endblock %}</h1></div>
+
+<div class="conteneur">
+
+    {% if user.is_authenticated %}
+    <div class="carte" style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
+        <a href="{% url 'trouver_client' %}">Clients</a>
+        {% if est_gerant %}
+            <a href="{% url 'rapports' %}">Rapports</a>
+            <a href="{% url 'regle' %}">Règle du café gratuit</a>
+        {% endif %}
+        <span style="margin-left:auto; color:var(--gris);">
+            {{ user.username }} ({% if est_gerant %}gérant{% else %}barista{% endif %})
+        </span>
+        <form method="post" action="{% url 'logout' %}" style="margin:0;">
+            {% csrf_token %}<button type="submit" class="bouton-secondaire">Déconnexion</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% for m in messages %}
+        <div class="carte" style="border-left:4px solid {% if m.tags == 'error' %}#c0392b{% elif m.tags == 'warning' %}#e67e22{% else %}#27ae60{% endif %};">{{ m }}</div>
+    {% endfor %}
+
+    {% block contenu %}{% endblock %}
+
+</div>
+</body>
+</html>

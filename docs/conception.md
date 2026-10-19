@@ -136,3 +136,60 @@ L'administration utilise **le même formulaire**, donc un client invalide ne peu
 ## 5. Pistes pour les prochains devoirs
 
 Bouton de transfert avec trace, annulation d'une vente de carte, comptes utilisateurs pour les baristas, tableau de bord des chiffres pour le propriétaire, tests automatisés du calcul d'expiration.
+
+
+
+
+
+---
+
+# Version 2
+
+## 1. Ce qui change
+La v1 reste valide : tout ce qu'elle faisait fonctionne encore. La v2 ajoute six capacités demandées par le patron : annuler, rapports, changer la règle, effacer, fusionner, et des comptes avec rôles. Chaque décision est expliquée dans un ADR (`docs/adr/`).
+
+## 2. Principe central : le journal fait foi (ADR-0001)
+Tous les soldes d'un client (achats, cafés gratuits, cartes) se calculent en **rejouant son journal de transactions**. Une transaction n'est jamais supprimée : on l'annule, avec la date et la personne. Le compteur `cafes_restants` de la carte prépayée est seulement un cache, recalculé à partir du journal à chaque annulation.
+
+## 3. Modèle de données (ajouts de la v2)
+| Élément | Rôle |
+|---|---|
+| `Transaction.cree_par` | Qui a fait la transaction |
+| `Transaction.annulee_le`, `annulee_par` | Qui a annulé, et quand |
+| `CartePrepayee.annulee` | La vente de la carte a été annulée |
+| `Client.efface` | Le client est anonymisé |
+| `RegleFidelite` | Nombre d'étampes requises et date d'entrée en vigueur |
+| `Audit` | Trace des fusions, effacements et changements de règle (sans renseignement personnel) |
+
+## 4. Les décisions sur les zones grises
+| Demande | Décision | ADR |
+|---|---|---|
+| Annuler | Annulation logique, refusée si elle rend le journal incohérent, sans limite d'âge | 0002 |
+| Rapports | Les transactions annulées ne sont pas comptées, même dans le passé | 0003 |
+| Règle | La règle appliquée est celle en vigueur à la date de chaque achat ; les étampes déjà accumulées comptent | 0004 |
+| Effacer | Anonymisation ; la carte restante est perdue | 0005 |
+| Fusionner | La fiche la plus ancienne survit ; pas de retour arrière | 0006 |
+| Rôles | Barista et gérant ; seul le gérant annule | 0007 |
+
+## 5. Structure du code
+- `models.py` : les données et le **rejeu du journal** (`rejouer`).
+- `services.py` : les règles d'affaires (annuler, effacer, fusionner, savoir si on est gérant), séparées des écrans.
+- `views.py` : les écrans ; les pages du gérant sont protégées par `gerant_requis`.
+- `forms.py` : validation des clients et de la règle.
+- `management/commands/` : `balances` (soldes de chaque client) et `demo_v2` (données de démonstration).
+
+## 6. Migration de la v1
+Deux nouvelles migrations (`0003`, `0004`) s'appliquent par-dessus la base v1. Aucune migration de la v1 n'est modifiée. Les soldes sont identiques avant et après (voir `docs/migration.md`).
+
+## 7. Tests
+`python manage.py test` lance 32 tests : les règles de la v1, au moins un test par demande, et un test par zone grise tranchée.
+
+## 8. Limites connues
+- **Une fusion ne peut pas être défaite.** Le téléphone de la fiche absorbée est perdu.
+- **L'effacement est définitif.** Les anciennes copies de sauvegarde de la base contiennent encore l'identité.
+- **Le barista ne peut pas annuler** sa propre erreur : il doit appeler le gérant.
+- **Le solde est recalculé à chaque affichage** en parcourant le journal du client. C'est rapide pour un petit café ; avec beaucoup plus de données, il faudrait un cache.
+- **Un café gratuit obtenu par fusion** peut déjà être expiré, car sa date est celle de l'achat qui l'a gagné.
+- **Pas de gestion de la concurrence** : si deux postes enregistrent en même temps sur la même carte, le compteur pourrait se tromper (le journal, lui, reste juste).
+- **Sécurité limitée à un usage local** : la clé secrète de Django est visible dans le dépôt, et `DEBUG` est activé.
+- **Les transactions de la v1 n'ont pas d'auteur** (elles ont été faites avant les comptes).

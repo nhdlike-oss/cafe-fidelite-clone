@@ -1,0 +1,25 @@
+{% extends "fidelite/base.html" %}
+{% block title %}Règle du café gratuit{% endblock %}
+{% block titre %}Règle du café gratuit{% endblock %}
+{% block contenu %}
+<div class="carte">
+    <h2>Règles en vigueur</h2>
+    <p style="color:var(--gris);">Sans règle enregistrée, il faut {{ defaut }} étampes. La règle appliquée
+       à un achat est celle en vigueur à la date de cet achat.</p>
+    <ul>
+        {% for r in regles %}
+            <li>{{ r.etampes_requises }} étampes à partir du {{ r.en_vigueur_le|date:"j F Y" }}</li>
+        {% empty %}
+            <li>Aucune règle enregistrée.</li>
+        {% endfor %}
+    </ul>
+</div>
+<div class="carte">
+    <h2>Changer la règle</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ formulaire.as_p }}
+        <button type="submit">Enregistrer</button>
+    </form>
+</div>
+{% endblock %}

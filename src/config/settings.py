@@ -62,6 +62,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'fidelite.context.roles',        # v2 : est_gerant dans les gabarits
             ],
         },
     },
@@ -126,3 +127,9 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+
+# v2 : connexion obligatoire
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'trouver_client'
+LOGOUT_REDIRECT_URL = 'login'
