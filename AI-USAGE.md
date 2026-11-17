@@ -33,3 +33,33 @@ Le code produit avec l'IA a été exécuté sur ma machine et essayé dans le na
 ## Limites de l'usage
 
 Le contenu généré n'est pas considéré comme correct par défaut : il a été relu, exécuté et adapté à mes décisions. Les limites connues de la solution sont documentées dans `docs/conception.md`, section 4.
+
+
+---
+---
+
+# Devoir 3
+
+## Outil utilisé
+Claude (Anthropic), via l'application Claude, tout au long du devoir 3.
+
+## Ce que l'IA a fait
+- **Code :** modèle `Succursale` et migrations 0005 à 0007, permissions par succursale (`services.py`), choix du café, rapports par café, `balances --succursale`, commandes `importer_sqlite` et `demo_v3`, page de santé `/sante/`.
+- **Conteneurs :** `Dockerfile`, `compose.yaml`, `compose.dev.yaml`, `docker/nginx.conf`, `.env.example`, configuration par variables d'environnement.
+- **Tests :** `tests_v3.py` (succursales, permissions, rapports, migration v2 vers v3).
+- **Documentation :** première version des ADR 0008 à 0015, de `retrospective-v2.md`, de la section v3 de `conception.md`, de `migration.md` et du README.
+- **Explications :** Docker, WSL, PostgreSQL et les migrations, en langage simple.
+
+## Ce que l'IA n'a pas pu faire
+Elle n'a pas pu lancer `docker compose` dans son environnement. Le démarrage des conteneurs et du proxy a été vérifié sur ma machine.
+
+## Ce qui vient de nous
+- J'ai installé Docker Desktop et WSL sur Windows, créé mon `.env` avec ma propre clé secrète, et lancé la v3 avec `docker compose up --build`.
+- J'ai chargé la démonstration et signalé l'erreur de `demo_v3` (transactions sans succursale), que l'IA a corrigée.
+- J'ai fait expliquer les ADR en langage simple jusqu'à les comprendre, puis j'ai validé les décisions des ADR 0008 à 0015.
+
+## Vérification
+J'ai lancé `docker compose run --rm web python manage.py test` dans mes conteneurs : 59 tests, tous réussis, contre PostgreSQL. Les quatre services démarrent en bon état (`docker compose ps`) et la démonstration se charge sans erreur.
+
+## Limites de l'usage
+Le contenu généré n'est pas considéré comme correct par défaut : il doit être relu, exécuté et adapté. Les limites connues sont dans `docs/conception.md` (Version 3, section 8).

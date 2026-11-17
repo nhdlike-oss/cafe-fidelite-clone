@@ -10,22 +10,51 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+# v3 : TOUTE la configuration vient de variables d'environnement (voir .env.example).
+# Passer de localhost a un vrai domaine ne demande donc aucune modification du code.
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-h5v%+8^a*344&a^tane)14))l#sx*3i^*@#yskdc+yrfkt@jd%'
+def env(nom, defaut=None):
+    return os.environ.get(nom, defaut)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+def env_bool(nom, defaut=False):
+    return env(nom, str(defaut)).strip().lower() in ("1", "true", "oui", "yes")
+
+
+def env_liste(nom, defaut=""):
+    return [x.strip() for x in env(nom, defaut).split(",") if x.strip()]
+
+
+# Par defaut : mode PRODUCTION (DEBUG desactive). Le mode developpement est demande
+# explicitement avec DEBUG=True (voir compose.dev.yaml).
+DEBUG = env_bool("DEBUG", False)
+
+SECRET_KEY = env("SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "cle-de-developpement-seulement"   # jamais utilisee en production
+    else:
+        raise ImproperlyConfigured("La variable d'environnement SECRET_KEY est obligatoire.")
+if SECRET_KEY.startswith("CHANGEZ") and not DEBUG:
+    raise ImproperlyConfigured("Remplacez la valeur d'exemple de SECRET_KEY dans .env.")
+
+ALLOWED_HOSTS = env_liste("ALLOWED_HOSTS", "localhost,127.0.0.1")
+CSRF_TRUSTED_ORIGINS = env_liste("CSRF_TRUSTED_ORIGINS", "")
+
+# Derriere un proxy HTTPS (futur deploiement) : une seule variable a changer.
+if env_bool("USE_HTTPS", False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -37,10 +66,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',       # garde la session de connexion
     'django.contrib.messages',       # petits messages à l'écran
     'django.contrib.staticfiles',    # fichiers CSS, images...
-    'fidelite',                      # NOUVEAU : ton app, sans cette ligne Django l'ignore
+    'fidelite',                      # l'application du café
 ]
 
 MIDDLEWARE = [
+    'fidelite.sante.SanteMiddleware',   # v3 : /sante/ repond avant tout le reste (healthchecks)
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -74,12 +104,26 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# PostgreSQL des que DB_HOST est defini (conteneurs). Sans DB_HOST : SQLite, pour le
+# developpement local et pour lire une base de la v2 (voir docs/migration.md).
+if env("DB_HOST"):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env("DB_NAME", "cafe"),
+            'USER': env("DB_USER", "cafe"),
+            'PASSWORD': env("DB_PASSWORD", ""),
+            'HOST': env("DB_HOST"),
+            'PORT': env("DB_PORT", "5432"),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': env("SQLITE_PATH", str(BASE_DIR / 'db.sqlite3')),
+        }
+    }
 
 
 # Password validation
@@ -117,6 +161,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+# v3 : `collectstatic` rassemble les fichiers ici ; le proxy nginx les sert (ADR-0014).
+STATIC_ROOT = env("STATIC_ROOT", str(BASE_DIR / 'staticfiles'))
 
 
 # Email
@@ -133,3 +179,13 @@ MAILERS = {
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'trouver_client'
 LOGOUT_REDIRECT_URL = 'login'
+
+
+# v3 : les journaux vont sur la sortie standard (`docker compose logs`).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {'simple': {'format': '%(asctime)s %(levelname)s %(name)s : %(message)s'}},
+    'handlers': {'console': {'class': 'logging.StreamHandler', 'formatter': 'simple'}},
+    'root': {'handlers': ['console'], 'level': env("LOG_LEVEL", "INFO")},
+}

@@ -21,7 +21,10 @@
             <a href="{% url 'regle' %}">Règle du café gratuit</a>
         {% endif %}
         <span style="margin-left:auto; color:var(--gris);">
-            {{ user.username }} ({% if est_gerant %}gérant{% else %}barista{% endif %})
+            {% if succursale_courante %}{{ succursale_courante.nom }}{% if plusieurs_succursales %}
+                (<a href="{% url 'choisir_succursale' %}?next={{ request.path }}">changer</a>){% endif %} ·
+            {% elif plusieurs_succursales %}<a href="{% url 'choisir_succursale' %}">Choisir le café</a> ·{% endif %}
+            {{ user.username }} ({% if est_proprietaire %}propriétaire{% elif est_gerant %}gérant{% else %}barista{% endif %})
         </span>
         <form method="post" action="{% url 'logout' %}" style="margin:0;">
             {% csrf_token %}<button type="submit" class="bouton-secondaire">Déconnexion</button>

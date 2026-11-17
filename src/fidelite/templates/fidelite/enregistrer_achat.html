@@ -61,11 +61,12 @@
             <tr style="border-bottom:1px solid #ddd; {% if t.est_annulee %}color:#999; text-decoration:line-through;{% endif %}">
                 <td style="padding:6px 4px;">{{ t.cree_le|date:"j M Y H:i" }}</td>
                 <td>{{ t.get_type_display }}</td>
+                <td>{{ t.succursale.nom }}</td>
                 <td>{{ t.cree_par.username|default:"—" }}</td>
                 <td style="text-decoration:none;">
                     {% if t.est_annulee %}
                         <span style="text-decoration:none; display:inline-block;">annulée par {{ t.annulee_par.username|default:"—" }} le {{ t.annulee_le|date:"j M Y H:i" }}</span>
-                    {% elif est_gerant %}
+                    {% elif t.succursale_id in cafes_geres %}
                         <form method="post" action="{% url 'annuler' t.id %}" style="margin:0;"
                               onsubmit="return confirm('Annuler cette transaction ?');">
                             {% csrf_token %}<button type="submit" class="bouton-secondaire">Annuler</button>
@@ -79,7 +80,7 @@
         </table>
     </div>
 
-    {% if est_gerant %}
+    {% if est_gerant and peut_gerer_fiche %}
     <div class="carte">
         <h2>Gestion de la fiche (gérant)</h2>
         <div class="actions">

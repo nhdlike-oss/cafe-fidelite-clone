@@ -18,6 +18,22 @@ DUREE_CARTE_JOURS = 30
 CAFES_PAR_CARTE = 11
 
 
+class Succursale(models.Model):
+    # v3 : un cafe du reseau. On en ajoute une par l'administration, sans toucher au code.
+    nom = models.CharField(max_length=100, unique=True)
+    active = models.BooleanField(default=True)
+    # Les employes (baristas, gerants) rattaches a ce cafe. Le proprietaire
+    # (super-utilisateur) n'a pas besoin d'y etre : il agit partout (ADR-0010).
+    personnel = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="succursales")
+
+    class Meta:
+        ordering = ["nom"]
+
+    def __str__(self):
+        return self.nom
+
+
 class Client(models.Model):
     nom = models.CharField(max_length=100)
     # unique=True = deux clients ne peuvent PAS avoir le meme numero.
@@ -151,6 +167,10 @@ class Transaction(models.Model):
     type = models.CharField(max_length=20, choices=Type.choices)
     carte = models.ForeignKey(CartePrepayee, null=True, blank=True, on_delete=models.SET_NULL)
     cree_le = models.DateTimeField(auto_now_add=True)
+    # v3 : le cafe ou la transaction a eu lieu (ADR-0008). Les transactions de la v2
+    # appartiennent toutes au premier cafe (migration 0006).
+    succursale = models.ForeignKey(
+        Succursale, on_delete=models.PROTECT, related_name="transactions")
     # v2 : qui a fait la transaction (vide pour les transactions de la v1).
     cree_par = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,

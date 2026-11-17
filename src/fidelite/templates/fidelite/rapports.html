@@ -7,16 +7,24 @@
     <form method="get" class="recherche">
         <label>Du <input type="date" name="debut" value="{{ debut|date:'Y-m-d' }}"></label>
         <label>au <input type="date" name="fin" value="{{ fin|date:'Y-m-d' }}"></label>
+        {% if succursales.count > 1 or est_proprietaire %}
+        <label>Café
+            <select name="succursale">
+                <option value="">{% if est_proprietaire %}Tout le réseau{% else %}Toutes mes succursales{% endif %}</option>
+                {% for s in succursales %}<option value="{{ s.pk }}"{% if choix == s.pk|stringformat:"s" %} selected{% endif %}>{{ s.nom }}</option>{% endfor %}
+            </select>
+        </label>
+        {% endif %}
         <button type="submit">Afficher</button>
     </form>
     <p>
         {% for nom, d, f in raccourcis %}
-            <a href="?debut={{ d|date:'Y-m-d' }}&fin={{ f|date:'Y-m-d' }}">{{ nom }}</a>{% if not forloop.last %} · {% endif %}
+            <a href="?debut={{ d|date:'Y-m-d' }}&fin={{ f|date:'Y-m-d' }}{% if choix %}&succursale={{ choix }}{% endif %}">{{ nom }}</a>{% if not forloop.last %} · {% endif %}
         {% endfor %}
     </p>
 </div>
 <div class="carte">
-    <h2>Du {{ debut|date:"j F Y" }} au {{ fin|date:"j F Y" }}</h2>
+    <h2>{{ titre_portee }} : du {{ debut|date:"j F Y" }} au {{ fin|date:"j F Y" }}</h2>
     <div class="stats">
         <div class="stat"><div class="valeur">{{ payes }}</div><div class="titre">Cafés payés</div></div>
         <div class="stat"><div class="valeur">{{ gratuits }}</div><div class="titre">Cafés gratuits donnés</div></div>

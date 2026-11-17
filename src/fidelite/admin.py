@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .forms import ClientForm
-from .models import Audit, CartePrepayee, Client, RegleFidelite, Transaction
+from .models import Audit, CartePrepayee, Client, RegleFidelite, Succursale, Transaction
 
 
 class SansSuppression(admin.ModelAdmin):
@@ -32,8 +32,9 @@ class CartePrepayeeAdmin(SansSuppression):
 @admin.register(Transaction)
 class TransactionAdmin(SansSuppression):
     # Lecture seule : toute correction passe par l'annulation (qui est tracee).
-    list_display = ("client", "type", "cree_le", "cree_par", "annulee_le", "annulee_par")
-    list_filter = ("type",)
+    list_display = ("client", "type", "succursale", "cree_le", "cree_par",
+                    "annulee_le", "annulee_par")
+    list_filter = ("type", "succursale")
     search_fields = ("client__nom",)
 
     def has_add_permission(self, request):
@@ -41,6 +42,13 @@ class TransactionAdmin(SansSuppression):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Succursale)
+class SuccursaleAdmin(SansSuppression):
+    # Ajouter un cafe = ajouter une ligne ici, sans modifier le code (devoir 3, 2.1).
+    list_display = ("nom", "active")
+    filter_horizontal = ("personnel",)
 
 
 @admin.register(RegleFidelite)

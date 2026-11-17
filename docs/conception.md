@@ -191,5 +191,127 @@ Deux nouvelles migrations (`0003`, `0004`) s'appliquent par-dessus la base v1. A
 - **Le solde est recalculé à chaque affichage** en parcourant le journal du client. C'est rapide pour un petit café ; avec beaucoup plus de données, il faudrait un cache.
 - **Un café gratuit obtenu par fusion** peut déjà être expiré, car sa date est celle de l'achat qui l'a gagné.
 - **Pas de gestion de la concurrence** : si deux postes enregistrent en même temps sur la même carte, le compteur pourrait se tromper (le journal, lui, reste juste).
-- **Sécurité limitée à un usage local** : la clé secrète de Django est visible dans le dépôt, et `DEBUG` est activé.
+- **Sécurité limitée à un usage local** *(corrigé en v3 : la clé secrète vient de l'environnement et `DEBUG` est désactivé par défaut)*.
 - **Les transactions de la v1 n'ont pas d'auteur** (elles ont été faites avant les comptes).
+
+
+---
+
+# Version 3
+
+La v2 reste valide : tout ce qu'elle faisait fonctionne encore (ses 32 tests passent toujours). La v3 ajoute **plusieurs cafés**, des permissions **par café**, et prépare le déploiement : PostgreSQL, conteneurs, configuration par variables d'environnement.
+
+## 1. Modèle de domaine v3
+
+```mermaid
+classDiagram
+  class Succursale {
+    nom (unique)
+    active
+  }
+  class Client {
+    nom
+    telephone
+    efface
+  }
+  class CartePrepayee {
+    cafes_restants (cache)
+    annulee
+  }
+  class Transaction {
+    type
+    cree_le
+    annulee_le
+  }
+  class User {
+    username
+    is_superuser
+  }
+  class RegleFidelite {
+    etampes_requises
+    en_vigueur_le
+  }
+  Succursale "1" --> "0..*" Transaction : accueille
+  Succursale "0..*" -- "0..*" User : personnel
+  Client "1" --> "0..*" Transaction : genere
+  Client "1" --> "0..*" CartePrepayee : possede
+  Transaction "0..*" --> "0..1" CartePrepayee : concerne
+  Transaction "0..*" --> "0..1" User : cree_par / annulee_par
+```
+
+- **`Succursale`** est la seule nouveauté du modèle. Chaque `Transaction` a une succursale **obligatoire** (clé protégée : on ne supprime pas un café qui a des transactions).
+- **`Client`, `CartePrepayee` et `RegleFidelite` n'ont pas de succursale** : les étampes, les gratuits en réserve et les cartes valent dans tout le réseau (ADR-0009, ADR-0011).
+- Un **employé** est rattaché à un ou plusieurs cafés (`Succursale.personnel`). Le **propriétaire** est le super-utilisateur Django.
+
+## 2. Diagramme de déploiement
+
+```mermaid
+flowchart LR
+  nav["Navigateur<br/>(localhost:8000)"]
+  subgraph reseau["Réseau interne Docker (aucun port exposé)"]
+    proxy["proxy : nginx 1.27<br/>écoute :80"]
+    web["web : Gunicorn + Django<br/>écoute :8000, DEBUG=False"]
+    db[("db : PostgreSQL 16<br/>écoute :5432")]
+    migrate["migrate : tâche unique<br/>migrate + collectstatic"]
+  end
+  vpg[["volume pgdata"]]
+  vst[["volume static"]]
+  nav -->|"HTTP :8000 → :80"| proxy
+  proxy -->|"/ (proxy_pass)"| web
+  proxy -->|"/static/ (lecture seule)"| vst
+  web -->|"SQL"| db
+  migrate -->|"schéma"| db
+  migrate -->|"écrit"| vst
+  db --- vpg
+```
+
+- **Ports exposés :** un seul, `8000` du poste vers le port 80 de nginx. La base et l'application ne sont joignables que par le réseau interne.
+- **Volumes :** `pgdata` (les données survivent à `docker compose down`) et `static` (les fichiers CSS rassemblés par `collectstatic`).
+- **Chemin d'une requête :** navigateur → nginx (`localhost:8000`) → Gunicorn (`web:8000`) → vue Django → PostgreSQL (`db:5432`). Pour `/static/`, nginx répond directement depuis le volume, sans passer par Django.
+- **Démarrage dans l'ordre :** `db` (sain) → `migrate` (terminé avec succès) → `web` (sain, via `/sante/` qui vérifie aussi la base) → `proxy`.
+- **Configuration :** tout vient de `.env` (voir `.env.example`). Passer à un vrai domaine = changer `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` et `USE_HTTPS`, sans toucher au code.
+
+## 3. Où les permissions par succursale sont vérifiées
+Toutes les règles vivent dans **`src/fidelite/services.py`** (`succursales_gerees`, `peut_gerer`, `exiger_gestion`, `exiger_gestion_clients`) et sont appelées à **deux endroits** (ADR-0010) :
+
+| Action | Dans la vue (403) | Dans le service (lève `PermissionDenied`) |
+|---|---|---|
+| Annuler une transaction | `views.annuler` (`gerant_requis`) | `annuler_transaction` : le gérant doit gérer la succursale de la transaction |
+| Voir un rapport | `views.rapports` : un café non géré donne 403 | (lecture seule : la vue filtre `succursale__in=gérées`) |
+| Effacer un client | `views.effacer` | `effacer_client` : toutes les transactions du client dans des cafés gérés |
+| Fusionner deux fiches | `views.fusionner` | `fusionner_clients` : idem pour les deux fiches |
+| Enregistrer une transaction | `views.enregistrer_achat` : le café doit être l'un des cafés de l'utilisateur | `succursale_courante` |
+
+## 4. Les décisions de la v3
+| Zone grise | Décision | ADR |
+|---|---|---|
+| Comment connaître le café ? Barista dans les deux ? | Café rattaché, choix à l'écran si plusieurs | 0008 |
+| Règle du café gratuit et promotion | Une règle pour le réseau, pas de promotion | 0009 |
+| Rôles et périmètre | Barista, gérant (ses cafés), propriétaire (tout) ; vérification côté serveur | 0010 |
+| Fiche client, effacer, fusionner | Fiche au réseau ; gérant seulement si tout est dans ses cafés | 0011 |
+| Gratuit réclamé ailleurs | Compté dans le café où il est réclamé | 0012 |
+| Migrations | Service qui se termine, avant l'application | 0013 |
+| Fichiers statiques | Servis par nginx | 0014 |
+| SQLite → PostgreSQL | Commande `importer_sqlite` | 0015 |
+
+## 5. Structure du code (ajouts)
+- `config/settings.py` : tout vient de variables d'environnement ; PostgreSQL si `DB_HOST` existe, SQLite sinon (développement local).
+- `fidelite/sante.py` : réponse `/sante/` pour les healthchecks.
+- `fidelite/migrations/0005`, `0006`, `0007` : succursale, premier café, colonne obligatoire. Trois migrations séparées parce que PostgreSQL refuse de modifier une colonne dans la même transaction que la mise à jour de ses données.
+- `management/commands/` : `importer_sqlite` (migration), `demo_v3` (démonstration), `balances --succursale`.
+- `Dockerfile`, `compose.yaml`, `compose.dev.yaml`, `docker/nginx.conf`, `.env.example`.
+
+## 6. Migration de la v2
+Voir `docs/migration.md`. Aucune migration de la v1 ou de la v2 n'est modifiée.
+
+## 7. Tests
+`docker compose run --rm web python manage.py test` lance les tests **contre PostgreSQL** : les 32 tests des devoirs 1 et 2, et ceux du devoir 3 (`tests_v3.py` : succursales, permissions par café, rapports du réseau, `balances`, page de santé, et un test de migration v2 → v3).
+
+## 8. Limites connues (v3)
+- **Un seul rôle global par personne** : on ne peut pas être gérant au Café 1 et barista au Café 2.
+- **Pas de promotion par café** (ADR-0009).
+- **Un client des deux cafés ne peut être effacé ou fusionné que par le propriétaire** (ADR-0011).
+- **Le nom « Café 1 » est provisoire** : il se change dans l'administration.
+- **Pas de HTTPS** pour l'instant (hors périmètre) : `USE_HTTPS` prépare le passage.
+- **Une seule instance** de l'application et de la base.
+- **La commande `importer_sqlite` charge tout en mémoire** : adaptée à un café, pas à des millions de lignes.

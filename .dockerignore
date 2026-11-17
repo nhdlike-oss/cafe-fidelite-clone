@@ -1,0 +1,13 @@
+# Rien d'inutile (ni de secret) dans l'image.
+.git
+.gitignore
+.venv
+.env
+**/__pycache__
+**/*.pyc
+**/db.sqlite3
+src/staticfiles
+docs
+*.md
+compose*.yaml
+docker

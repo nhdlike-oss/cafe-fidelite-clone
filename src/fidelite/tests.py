@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .forms import ClientForm, RegleForm
-from .models import Audit, CartePrepayee, Client, RegleFidelite, Transaction
+from .models import Audit, CartePrepayee, Client, RegleFidelite, Succursale, Transaction
 from .services import (ErreurMetier, annuler_transaction, effacer_client,
                        fusionner_clients)
 
@@ -17,9 +17,15 @@ T = Transaction.Type
 
 # ---------- Outils de test ----------
 
-def ajouter(client, type_, jours=0, carte=None, par=None):
+def premier_cafe():
+    # Le premier cafe est cree par la migration 0006 (comme en production).
+    return Succursale.objects.get(nom="Café 1")
+
+
+def ajouter(client, type_, jours=0, carte=None, par=None, cafe=None):
     # Cree une transaction "il y a N jours" (cree_le est automatique, on le recule apres).
-    t = Transaction.objects.create(client=client, type=type_, carte=carte, cree_par=par)
+    t = Transaction.objects.create(client=client, type=type_, carte=carte, cree_par=par,
+                                   succursale=cafe or premier_cafe())
     if jours:
         Transaction.objects.filter(pk=t.pk).update(cree_le=timezone.now() - timedelta(days=jours))
         t.refresh_from_db()
@@ -50,6 +56,8 @@ class BaseTest(TestCase):
         self.barista.groups.add(Group.objects.get(name="barista"))
         self.gerant = User.objects.create_user("gerant", password="x")
         self.gerant.groups.add(Group.objects.get(name="gerant"))
+        self.cafe = premier_cafe()
+        self.cafe.personnel.add(self.barista, self.gerant)
         self.cl = Client.objects.create(nom="Sara Martin", telephone="4185550001")
 
 

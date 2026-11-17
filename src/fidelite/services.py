@@ -1,7 +1,8 @@
+from django.core.exceptions import PermissionDenied
 from django.db import transaction as db
 from django.utils import timezone
 
-from .models import Audit, CartePrepayee, Client, Transaction, rejouer
+from .models import Audit, CartePrepayee, Client, Succursale, Transaction, rejouer
 
 GROUPE_GERANT = "gerant"
 GROUPE_BARISTA = "barista"
@@ -17,8 +18,74 @@ def est_gerant(user):
                 and (user.is_superuser or user.groups.filter(name=GROUPE_GERANT).exists()))
 
 
+# ---------- v3 : permissions par succursale (ADR-0010 et ADR-0011) ----------
+# TOUTES les verifications passent par ces fonctions, appelees cote serveur
+# (dans les vues ET dans les services) : cacher un bouton ne suffit jamais.
+
+def est_proprietaire(user):
+    # Le proprietaire est le super-utilisateur Django : il agit dans tous les cafes.
+    return bool(user and user.is_authenticated and user.is_superuser)
+
+
+def succursales_permises(user):
+    # Les cafes ou l'utilisateur peut enregistrer des transactions.
+    if est_proprietaire(user):
+        return Succursale.objects.filter(active=True)
+    if user and user.is_authenticated:
+        return user.succursales.filter(active=True)
+    return Succursale.objects.none()
+
+
+def succursales_gerees(user):
+    # Les cafes ou l'utilisateur peut faire des actions de gerant (annuler, rapports...).
+    if est_proprietaire(user):
+        return Succursale.objects.all()
+    if est_gerant(user):
+        return user.succursales.all()
+    return Succursale.objects.none()
+
+
+def peut_gerer(user, succursale):
+    return succursales_gerees(user).filter(pk=succursale.pk).exists()
+
+
+def exiger_gestion(user, succursale):
+    if not peut_gerer(user, succursale):
+        raise PermissionDenied("Vous ne gérez pas cette succursale.")
+
+
+def exiger_gestion_clients(user, *clients):
+    # La fiche client appartient au RESEAU (ADR-0011) : le proprietaire peut tout faire ;
+    # un gerant seulement si TOUTES les transactions du/des client(s) sont dans ses cafes.
+    if est_proprietaire(user):
+        return
+    ids_clients = [c.pk for c in clients]
+    cafes_du_client = set(Transaction.objects.filter(client__in=ids_clients)
+                          .values_list("succursale_id", flat=True))
+    mes_cafes = set(succursales_gerees(user).values_list("pk", flat=True))
+    if not cafes_du_client <= mes_cafes:
+        raise PermissionDenied(
+            "Ce client a des transactions dans une autre succursale : "
+            "seul le propriétaire peut le faire.")
+
+
+SESSION_SUCCURSALE = "succursale_id"
+
+
+def succursale_courante(request):
+    # Le cafe ou se trouve la personne connectee (ADR-0008) : son seul cafe, ou celui
+    # qu'elle a choisi a l'ecran. Retourne None si elle doit encore choisir.
+    permises = list(succursales_permises(request.user))
+    choisie = request.session.get(SESSION_SUCCURSALE)
+    for cafe in permises:
+        if cafe.pk == choisie:
+            return cafe
+    return permises[0] if len(permises) == 1 else None
+
+
 def annuler_transaction(tx, user):
     """Annule une transaction (ADR-0002). Refuse si le journal devenait incoherent."""
+    exiger_gestion(user, tx.succursale)
     with db.atomic():
         if tx.est_annulee:
             raise ErreurMetier("Cette transaction est déjà annulée.")
@@ -53,6 +120,7 @@ def annuler_transaction(tx, user):
 
 def effacer_client(client, user):
     """Anonymise le client (ADR-0005). Les transactions restent pour les rapports."""
+    exiger_gestion_clients(user, client)
     with db.atomic():
         if client.efface:
             raise ErreurMetier("Ce client est déjà effacé.")
@@ -63,6 +131,7 @@ def effacer_client(client, user):
 
 def fusionner_clients(a, b, user):
     """Fusionne deux fiches (ADR-0006). La plus ancienne survit. Retourne la survivante."""
+    exiger_gestion_clients(user, a, b)
     with db.atomic():
         if a.pk == b.pk:
             raise ErreurMetier("Choisissez deux fiches différentes.")

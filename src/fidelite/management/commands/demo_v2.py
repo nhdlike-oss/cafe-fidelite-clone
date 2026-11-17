@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group, User
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from fidelite.models import CartePrepayee, Client, Transaction
+from fidelite.models import CartePrepayee, Client, Succursale, Transaction
 from fidelite.services import GROUPE_BARISTA, GROUPE_GERANT
 
 T = Transaction.Type
@@ -22,12 +22,15 @@ class Command(BaseCommand):
             u.groups.add(Group.objects.get_or_create(name=groupe)[0])
         barista = User.objects.get(username="barista")
         now = timezone.now()
+        # v3 : chaque transaction appartient à un café ; la démo v2 se passe au premier café.
+        cafe = Succursale.objects.get_or_create(nom="Café 1")[0]
 
         def client(nom, tel, courriel=""):
             return Client.objects.get_or_create(telephone=tel, defaults={"nom": nom, "courriel": courriel})
 
         def ajouter(c, type_, jours, carte=None, heures=0):
-            t = Transaction.objects.create(client=c, type=type_, carte=carte, cree_par=barista)
+            t = Transaction.objects.create(client=c, type=type_, carte=carte, cree_par=barista,
+                                       succursale=cafe)
             quand = now - timedelta(days=jours, hours=heures)
             Transaction.objects.filter(pk=t.pk).update(cree_le=quand)
             return t, quand

@@ -1,0 +1,19 @@
+{% extends "fidelite/base.html" %}
+{% block title %}Choisir le café{% endblock %}
+{% block titre %}Dans quel café êtes-vous ?{% endblock %}
+{% block contenu %}
+<div class="carte">
+    {% if succursales %}
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ suivant }}">
+        {% for s in succursales %}
+            <p><label><input type="radio" name="succursale" value="{{ s.pk }}" required> {{ s.nom }}</label></p>
+        {% endfor %}
+        <button type="submit">Continuer</button>
+    </form>
+    {% else %}
+        <p>Votre compte n'est rattaché à aucune succursale : demandez au propriétaire de vous en attribuer une.</p>
+    {% endif %}
+</div>
+{% endblock %}
