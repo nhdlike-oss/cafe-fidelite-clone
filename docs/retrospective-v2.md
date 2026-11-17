@@ -13,7 +13,7 @@ Nous n'avions pas vu à quel point l'idée « un seul café » était **implicit
 Nous n'avions pas non plus prévu que la **fiche client** soulèverait une question : effacer ou fusionner un client qui a des transactions dans deux cafés (zone grise de la demande 2.3).
 
 ## 2. Pouvait-on ajouter une succursale à un seul endroit ?
-Non. Il faudra ajouter la succursale sur les transactions, mais aussi corriger les rapports, les permissions, `balances` et les données de démonstration. Le journal des transactions nous aide, par contre : comme toute l'activité y est déjà, il suffit d'ajouter une colonne à cette seule table pour savoir où chaque chose s'est passée. Si nous avions gardé des compteurs, il aurait fallu les découper par café.
+Non. Il faudra ajouter la succursale sur les transactions mais aussi corriger les rapports, les permissions, `balances` et les données de démonstration. Le journal des transactions nous aide, par contre : comme toute l'activité y est déjà, il suffit d'ajouter une colonne à cette seule table pour savoir où chaque chose s'est passée. Si nous avions gardé des compteurs, il aurait fallu les découper par café.
 
 ## 3. Ce que nous ferions autrement
 Nous aurions dû poser la question « dans quel café ? » dès la v1, même avec un seul café. Une colonne de plus coûtait presque rien au début ; l'ajouter maintenant, sur des données réelles, oblige à une migration prudente (ajouter la colonne facultative, remplir, puis la rendre obligatoire).
